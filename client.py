@@ -13,7 +13,7 @@ IP = "127.0.0.1"
 
 # test sending a message
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#sock.sendto(MESSAGE, (IP, PORT))
+# sock.sendto(MESSAGE, (IP, PORT))
 
 pygame.init()  # init pygame
 pygame.joystick.init()  # init pygame joysticks
@@ -23,6 +23,14 @@ joycount = pygame.joystick.get_count()
 print( joycount )
 for x in (0, joycount):
     print(joysticks)  # print list of connected controllers
+
+
+def senddata(message):
+    """ This command uses the socket library to send a 2 byte message parameter
+    :param message: the data that gets sent to the arduino, to be handled and control the motors
+    :return: no return
+    """
+    sock.sendto(message, (IP, PORT))
 
 # The steelseries gamepad used to set this up has the following characteristics
 # When running the controller test program, the axes are as follows:
@@ -36,21 +44,22 @@ for x in (0, joycount):
 # The buttons are straightforward. Each button has a number on it, n, and
 # and number that represents in in the code, m.
 # m = n - 1
-# If the button says 1 on it, then the code has it as button 0
-# There are 12 buttons in this manner
+# If the button says 1 on it, then the client code has it as button 0
+# There are 12 buttons in this manner, 1-12 or 0-11
 #
 #
 # This code will be compatible with other controllers, but the behavior is not guaranteed,
 # don't go to competition without verifying the controller works the way it is expected to
-# in the hardware it is running in
+# on the hardware it is running in
 #
 
 
 def handlebutton(number, value):
     """
-    :param number: the number of the button, as represented in the code (m)
+    This command takes information from the pygame library button events to send the correct 2 byte sequence
+    :param number: the number of the button, as represented as m
     :param value: pressed or released
-    :return:
+    :return no return. prints what button was pressed though
     """
     if value == 0:  # button has been pressed. most methods will activate on this condition
         if number == 0:   # on the steelseries gamepad, this in the top button on the right
@@ -81,7 +90,7 @@ def handlebutton(number, value):
             print("9 pressed")
             senddata(b'\xB9')
         elif number == 9: # on the steelseries gamepad, this is the right middle button
-            print("10 prssed")
+            print("10 pressed")
             senddata(b'\xB0')
         elif number == 10: # on the steelseries gamepad, this is pressing the left control stick in
             print("11 pressed")
@@ -95,6 +104,12 @@ def handlebutton(number, value):
 
 
 def handleaxis(number, value):
+    """
+    This command takes information from the pygame library axis events to send the correct 2 byte sequence
+    :param number: number of axis. there are two axes per control stick
+    :param value: value representing where along the axis the control stick lies
+    :return no return. prints information about control stick movements
+    """
     if number == 0: # left stick's left to right
         if value < -0.5:
             print("Left stick to the left")
@@ -138,30 +153,36 @@ def handleaxis(number, value):
 
 
 def handlehat(number, value):
-
-    if number == 0: # left stick's left to right
-        if value[0] == 0 and value[1] == 1:
+    """
+    This command takes information from the pygame library hat (or dpad) events to send the correct 2 byte sequence
+    :param number: which
+    :param value: contains two values, which work together similar to two bits to define 4 dpad positions
+    :return: no return. prints output for each dpad action.
+    """
+    if number == 0: # the only dpad
+        if value[0] == 0 and value[1] == 1:  # this value indicates up
             print("DPad up")
             senddata(b'\xD1')
-        elif value[0] == 1 and value[1] == 0:
+        elif value[0] == 1 and value[1] == 0:  # this value indicates right
             print("DPad right")
             senddata(b'\xD2')
-        elif value[0] == 0 and value[1] == -1:
+        elif value[0] == 0 and value[1] == -1:  # this value indicates down
             print("DPad down")
             senddata(b'\xD3')
-        elif value[0] == -1 and value[1] == 0:
+        elif value[0] == -1 and value[1] == 0:  # this value indicates left
             print("DPad left")
             senddata(b'\xD4')
 
 
-def handlecontrol( number, value, conttype = "button" ):
+def handlecontrol(number, value, conttype="button"):
     """
-
+    This command forwards the relevant event information to the correct handler functions.
+    All commands go through this function first.
     :param number: the ID number of the button, axis, or other control
     :param value:   the value inputted. the meaning will depend on control type.
                     button values are down and up for pressed and released
                     respectively
-    :param conttype: default is "button". there is also "axis"
+    :param conttype: short for control type. default is "button". there is also "axis" and "hat"
     :return:
     """
     if conttype == "button":
@@ -172,29 +193,27 @@ def handlecontrol( number, value, conttype = "button" ):
         handlehat(number, value)
 
 
-def senddata( message ):
+# Main Control Loop Below #
+
+def main():
     """
-    :param message: the data that gets sent to the arduino, to be handled and control the motors
+    This is the first thing that runs in client.py. It's an infinite loop to handle all controller events
+    by sending important information from them to the relevant commands.
     :return: no return
     """
-    sock.sendto( message, ( IP, PORT))
+    while True:  # during control loop
+        joystick = pygame.joystick.Joystick(0)  # assume the first joystick found was the one intended to use
+        joystick.init()                         # initialize the event handlers for the controller
+        # command handling. events should be sent to server
+        for event in pygame.event.get():        # pygame.event is a queue of commands sent from a controller
+            if event.type == pygame.JOYAXISMOTION:  # if the command is from a joystick moving
+                handlecontrol(event.axis,event.value,"axis")
+            if event.type == pygame.JOYBUTTONDOWN:  # if the command is a button being pressed
+                handlecontrol(event.button,0,"button")
+            if event.type == pygame.JOYBUTTONUP:    # if the command is a button being released
+                handlecontrol(event.button,1,"button")
+            if event.type == pygame.JOYHATMOTION:   # if the command is a d-pad being pressed
+                handlecontrol(event.hat,event.value,"hat")
 
 
-
-# This while loop is like the main for client.py. Python files don't necessarily need mains when used like this.
-
-
-while True:  # during control loop
-    joystick = pygame.joystick.Joystick(0)
-    joystick.init()
-    # command handling. events should be sent to server
-    for event in pygame.event.get():
-        if event.type == pygame.JOYAXISMOTION:
-            handlecontrol(event.axis,event.value,"axis")
-        if event.type == pygame.JOYBUTTONDOWN:
-            handlecontrol(event.button,0,"button")
-        if event.type == pygame.JOYBUTTONUP:
-            handlecontrol(event.button,1,"button")
-        if event.type == pygame.JOYHATMOTION:
-            handlecontrol(event.hat,event.value,"hat")
-
+main()
