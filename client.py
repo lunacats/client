@@ -8,12 +8,12 @@
 import socket
 import pygame
 
-PORT = 8000
-IP = "127.0.0.1"
+PORT = 5567
+IP = "10.42.0.229"
 
 # test sending a message
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-#sock.sendto(MESSAGE, (IP, PORT))
+sock.connect((IP, PORT))
 
 pygame.init()  # init pygame
 pygame.joystick.init()  # init pygame joysticks
