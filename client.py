@@ -15,9 +15,6 @@ IP = "127.0.0.1"
 
 class Client:
 
-    # lastlcommand = ""
-    # lastrcommand = ""
-
     def __init__(self):
         self.lastlcommand = ""
         self.lastrcommand = ""
@@ -158,12 +155,12 @@ class Client:
                 if self.lastlcommand != "n":
                     self.lastlcommand = "n"
                     print("Left stick neutral")
-                    self.senddata( b'\xD1')
+                    self.senddata( b'\xD0')
         elif number == 4:  # right stick's up and down
             if value < -sensitivity() and (self.lastrcommand != "f"):
                 self.lastrcommand = "f"
                 print("Right stick forward")
-                self.senddata( b'\xD8')
+                self.senddata( b'\xDB')
             elif value > sensitivity() and (self.lastrcommand != "b"):
                 self.lastrcommand = "b"
                 print("Right stick back")
