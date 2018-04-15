@@ -10,7 +10,7 @@ import pygame
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 PORT = 8000
-IP = "127.0.0.1"
+IP = "10.42.0.229"
 
 
 class Client:
